@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import SearchBar from './SearchBar';
@@ -9,6 +9,7 @@ import CurrentWeather from './CurrentWeather';
 import Forecast from './Forecast';
 import { Card, CardContent } from '@/components/ui/card';
 import { WeatherData, getCurrentWeather, getForecast, getDailyForecast, setApiKey } from '@/services/weatherService';
+import { ExternalLink } from 'lucide-react';
 
 const WeatherApp: React.FC = () => {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
@@ -61,10 +62,16 @@ const WeatherApp: React.FC = () => {
       });
     } catch (error) {
       console.error('API key validation failed:', error);
-      let errorMessage = "The provided API key could not be validated. Please check and try again.";
+      let errorMessage = "The provided API key could not be validated.";
       
       if (error instanceof Error) {
-        errorMessage = error.message;
+        if (error.message.includes("Invalid API key")) {
+          errorMessage = "The API key is invalid. Please check the key and try again.";
+        } else if (error.message.includes("not found")) {
+          errorMessage = "There was an issue connecting to the weather service. Please try again later.";
+        } else {
+          errorMessage = error.message;
+        }
       }
       
       toast({
@@ -140,12 +147,24 @@ const WeatherApp: React.FC = () => {
           <CardContent className="p-6">
             <h3 className="text-lg font-medium mb-2">Enter OpenWeatherMap API Key</h3>
             <p className="text-sm text-muted-foreground mb-4">
-              To use this app, you need an API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener" className="text-blue-500 hover:underline">OpenWeatherMap</a>. 
+              To use this app, you need an API key from{' '}
+              <a 
+                href="https://openweathermap.org/api" 
+                target="_blank" 
+                rel="noopener" 
+                className="text-blue-500 hover:underline inline-flex items-center"
+              >
+                OpenWeatherMap <ExternalLink className="h-3 w-3 ml-1" />
+              </a>. 
               Sign up for free and enter your key below.
             </p>
             <Alert className="mb-4 bg-yellow-50 border-yellow-200">
-              <AlertDescription>
-                Note: New API keys may take a few hours to activate. If you get an "Invalid API key" error with a newly created key, please wait and try again later.
+              <AlertTitle>Important Notes About API Keys</AlertTitle>
+              <AlertDescription className="space-y-2">
+                <p>1. <strong>New API keys may take up to 2 hours to activate.</strong> If you just created your key, please wait before trying again.</p>
+                <p>2. Make sure you're copying the entire key without any extra spaces.</p>
+                <p>3. Verify you're using the correct key. There are different types of API keys for different OpenWeatherMap services.</p>
+                <p>4. The free tier API key works with this app. You don't need a paid subscription.</p>
               </AlertDescription>
             </Alert>
             <div className="flex gap-2">

@@ -33,22 +33,37 @@ export const getCurrentWeather = async (city: string): Promise<WeatherData> => {
       throw new Error("API key not set");
     }
     
+    console.log(`Attempting to fetch weather for ${city} with API key: ${API_KEY.substring(0, 3)}...${API_KEY.substring(API_KEY.length - 3)}`);
+    
     const response = await fetch(
       `${BASE_URL}/weather?q=${city}&appid=${API_KEY}&units=metric`
     );
     
+    const responseText = await response.text();
+    let errorData;
+    
+    try {
+      errorData = JSON.parse(responseText);
+    } catch (e) {
+      console.error("Failed to parse response as JSON:", responseText);
+      errorData = { message: "Unknown error occurred" };
+    }
+    
     if (!response.ok) {
-      const errorData = await response.json();
+      console.error("Error response:", errorData);
+      
       if (response.status === 401) {
         throw new Error("Invalid API key. Please check your API key and try again.");
       } else if (response.status === 404) {
         throw new Error(`City '${city}' not found. Please check the spelling and try again.`);
+      } else if (errorData && errorData.message) {
+        throw new Error(`Error: ${errorData.message}`);
       } else {
-        throw new Error(errorData.message || `Weather data not found for ${city}`);
+        throw new Error(`Weather data not found for ${city}. Server returned status ${response.status}`);
       }
     }
     
-    const data = await response.json();
+    const data = errorData;
     
     return {
       city: data.name,
