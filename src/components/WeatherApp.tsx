@@ -1,20 +1,77 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import SearchBar from './SearchBar';
 import CurrentWeather from './CurrentWeather';
 import Forecast from './Forecast';
 import { Card, CardContent } from '@/components/ui/card';
-import { WeatherData, getCurrentWeather, getForecast, getDailyForecast } from '@/services/weatherService';
+import { WeatherData, getCurrentWeather, getForecast, getDailyForecast, setApiKey } from '@/services/weatherService';
 
 const WeatherApp: React.FC = () => {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<WeatherData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [apiKey, setLocalApiKey] = useState('');
+  const [showApiInput, setShowApiInput] = useState(false);
+  const [storedApiKey, setStoredApiKey] = useState<string | null>(null);
+  
   const { toast } = useToast();
 
+  useEffect(() => {
+    // Check if API key is in localStorage
+    const savedApiKey = localStorage.getItem('weatherApiKey');
+    if (savedApiKey) {
+      setStoredApiKey(savedApiKey);
+      setApiKey(savedApiKey);
+    } else {
+      setShowApiInput(true);
+    }
+  }, []);
+
+  const handleSaveApiKey = () => {
+    if (apiKey.trim()) {
+      localStorage.setItem('weatherApiKey', apiKey.trim());
+      setStoredApiKey(apiKey.trim());
+      setApiKey(apiKey.trim());
+      setShowApiInput(false);
+      toast({
+        title: "API Key Saved",
+        description: "Your OpenWeatherMap API key has been saved.",
+      });
+    } else {
+      toast({
+        title: "Error",
+        description: "Please enter a valid API key.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleClearApiKey = () => {
+    localStorage.removeItem('weatherApiKey');
+    setStoredApiKey(null);
+    setShowApiInput(true);
+    toast({
+      title: "API Key Removed",
+      description: "Your API key has been removed.",
+    });
+  };
+
   const handleSearch = async (city: string) => {
+    if (!storedApiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter your OpenWeatherMap API key first.",
+        variant: "destructive",
+      });
+      setShowApiInput(true);
+      return;
+    }
+    
     setIsLoading(true);
     try {
       // Fetch current weather
@@ -48,11 +105,54 @@ const WeatherApp: React.FC = () => {
         </p>
       </div>
       
+      {showApiInput && (
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <h3 className="text-lg font-medium mb-2">Enter OpenWeatherMap API Key</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              To use this app, you need an API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener" className="text-blue-500 hover:underline">OpenWeatherMap</a>. 
+              Sign up for free and enter your key below.
+            </p>
+            <div className="flex gap-2">
+              <Input 
+                type="text" 
+                placeholder="Enter your API key" 
+                value={apiKey} 
+                onChange={(e) => setLocalApiKey(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleSaveApiKey}>Save Key</Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {storedApiKey && (
+        <div className="mb-6 flex justify-end">
+          <Button variant="outline" size="sm" onClick={() => setShowApiInput(!showApiInput)}>
+            {showApiInput ? 'Hide API Settings' : 'Show API Settings'}
+          </Button>
+          {showApiInput && (
+            <Button variant="destructive" size="sm" className="ml-2" onClick={handleClearApiKey}>
+              Clear API Key
+            </Button>
+          )}
+        </div>
+      )}
+      
       <div className="flex justify-center mb-8">
         <SearchBar onSearch={handleSearch} isLoading={isLoading} />
       </div>
       
-      {!hasSearched && !isLoading && (
+      {!storedApiKey && (
+        <Alert className="mb-6">
+          <AlertDescription>
+            Please enter your OpenWeatherMap API key above to use the weather app.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {!hasSearched && !isLoading && storedApiKey && (
         <Card className="bg-accent border-none">
           <CardContent className="p-6 text-center">
             <h3 className="text-xl font-medium mb-2">Welcome to the Weather App</h3>

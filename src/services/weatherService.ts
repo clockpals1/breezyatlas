@@ -1,5 +1,5 @@
 
-const API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"; // Users need to replace this with their API key
+let API_KEY = ""; // Will be set by the app
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 export type WeatherData = {
@@ -23,8 +23,16 @@ export type ForecastData = {
   };
 };
 
+export const setApiKey = (apiKey: string) => {
+  API_KEY = apiKey;
+};
+
 export const getCurrentWeather = async (city: string): Promise<WeatherData> => {
   try {
+    if (!API_KEY) {
+      throw new Error("API key not set");
+    }
+    
     const response = await fetch(
       `${BASE_URL}/weather?q=${city}&appid=${API_KEY}&units=metric`
     );
