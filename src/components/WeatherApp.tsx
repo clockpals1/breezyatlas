@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -17,6 +18,7 @@ const WeatherApp: React.FC = () => {
   const [apiKey, setLocalApiKey] = useState('');
   const [showApiInput, setShowApiInput] = useState(false);
   const [storedApiKey, setStoredApiKey] = useState<string | null>(null);
+  const [validationInProgress, setValidationInProgress] = useState(false);
   
   const { toast } = useToast();
 
@@ -42,12 +44,15 @@ const WeatherApp: React.FC = () => {
       return;
     }
 
+    setValidationInProgress(true);
+    setApiKey(trimmedApiKey);
+
     try {
+      // Test the API key with a known city
       await getCurrentWeather('London');
       
       localStorage.setItem('weatherApiKey', trimmedApiKey);
       setStoredApiKey(trimmedApiKey);
-      setApiKey(trimmedApiKey);
       setShowApiInput(false);
       
       toast({
@@ -56,11 +61,19 @@ const WeatherApp: React.FC = () => {
       });
     } catch (error) {
       console.error('API key validation failed:', error);
+      let errorMessage = "The provided API key could not be validated. Please check and try again.";
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Invalid API Key",
-        description: "The provided API key could not be validated. Please check and try again.",
+        title: "API Key Error",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setValidationInProgress(false);
     }
   };
 
@@ -97,9 +110,15 @@ const WeatherApp: React.FC = () => {
       setHasSearched(true);
     } catch (error) {
       console.error('Error fetching weather data:', error);
+      let errorMessage = `Could not find weather data for "${city}". Please check the city name and try again.`;
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Error",
-        description: `Could not find weather data for "${city}". Please check the city name and try again.`,
+        title: "Search Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -124,6 +143,11 @@ const WeatherApp: React.FC = () => {
               To use this app, you need an API key from <a href="https://openweathermap.org/api" target="_blank" rel="noopener" className="text-blue-500 hover:underline">OpenWeatherMap</a>. 
               Sign up for free and enter your key below.
             </p>
+            <Alert className="mb-4 bg-yellow-50 border-yellow-200">
+              <AlertDescription>
+                Note: New API keys may take a few hours to activate. If you get an "Invalid API key" error with a newly created key, please wait and try again later.
+              </AlertDescription>
+            </Alert>
             <div className="flex gap-2">
               <Input 
                 type="text" 
@@ -131,8 +155,16 @@ const WeatherApp: React.FC = () => {
                 value={apiKey} 
                 onChange={(e) => setLocalApiKey(e.target.value)}
                 className="flex-1"
+                disabled={validationInProgress}
               />
-              <Button onClick={handleSaveApiKey}>Save Key</Button>
+              <Button onClick={handleSaveApiKey} disabled={validationInProgress}>
+                {validationInProgress ? (
+                  <>
+                    <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+                    Validating...
+                  </>
+                ) : "Save Key"}
+              </Button>
             </div>
           </CardContent>
         </Card>

@@ -38,7 +38,14 @@ export const getCurrentWeather = async (city: string): Promise<WeatherData> => {
     );
     
     if (!response.ok) {
-      throw new Error(`Weather data not found for ${city}`);
+      const errorData = await response.json();
+      if (response.status === 401) {
+        throw new Error("Invalid API key. Please check your API key and try again.");
+      } else if (response.status === 404) {
+        throw new Error(`City '${city}' not found. Please check the spelling and try again.`);
+      } else {
+        throw new Error(errorData.message || `Weather data not found for ${city}`);
+      }
     }
     
     const data = await response.json();
@@ -68,7 +75,14 @@ export const getForecast = async (city: string): Promise<ForecastData> => {
     );
     
     if (!response.ok) {
-      throw new Error(`Forecast data not found for ${city}`);
+      const errorData = await response.json();
+      if (response.status === 401) {
+        throw new Error("Invalid API key. Please check your API key and try again.");
+      } else if (response.status === 404) {
+        throw new Error(`City '${city}' not found. Please check the spelling and try again.`);
+      } else {
+        throw new Error(errorData.message || `Forecast data not found for ${city}`);
+      }
     }
     
     const data = await response.json();
