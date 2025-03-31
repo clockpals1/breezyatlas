@@ -2,7 +2,7 @@
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/da3273af-54c9-4213-bffb-f94fa46ca067
+
 
 
 
