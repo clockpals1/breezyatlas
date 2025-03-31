@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useToast } from '@/components/ui/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -22,7 +21,6 @@ const WeatherApp: React.FC = () => {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if API key is in localStorage
     const savedApiKey = localStorage.getItem('weatherApiKey');
     if (savedApiKey) {
       setStoredApiKey(savedApiKey);
@@ -32,20 +30,35 @@ const WeatherApp: React.FC = () => {
     }
   }, []);
 
-  const handleSaveApiKey = () => {
-    if (apiKey.trim()) {
-      localStorage.setItem('weatherApiKey', apiKey.trim());
-      setStoredApiKey(apiKey.trim());
-      setApiKey(apiKey.trim());
-      setShowApiInput(false);
-      toast({
-        title: "API Key Saved",
-        description: "Your OpenWeatherMap API key has been saved.",
-      });
-    } else {
+  const handleSaveApiKey = async () => {
+    const trimmedApiKey = apiKey.trim();
+    
+    if (!trimmedApiKey) {
       toast({
         title: "Error",
-        description: "Please enter a valid API key.",
+        description: "API key cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await getCurrentWeather('London');
+      
+      localStorage.setItem('weatherApiKey', trimmedApiKey);
+      setStoredApiKey(trimmedApiKey);
+      setApiKey(trimmedApiKey);
+      setShowApiInput(false);
+      
+      toast({
+        title: "API Key Validated",
+        description: "Your OpenWeatherMap API key has been successfully saved and tested.",
+      });
+    } catch (error) {
+      console.error('API key validation failed:', error);
+      toast({
+        title: "Invalid API Key",
+        description: "The provided API key could not be validated. Please check and try again.",
         variant: "destructive",
       });
     }
@@ -74,11 +87,9 @@ const WeatherApp: React.FC = () => {
     
     setIsLoading(true);
     try {
-      // Fetch current weather
       const weatherData = await getCurrentWeather(city);
       setCurrentWeather(weatherData);
       
-      // Fetch forecast
       const forecastData = await getForecast(city);
       const dailyForecast = getDailyForecast(forecastData.list);
       setForecast(dailyForecast);
